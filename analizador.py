@@ -1,36 +1,43 @@
 import re
-from flask import Flask, request, render_template_string
+from flask import Flask, render_template, request
 
-# Patrones para el lexer
+# Patrones Lexicos
 patterns = [
+    # palabras clave reservadas
     (r'\bvar\b', 'VAR'),
     (r'\bif\b', 'IF'),
     (r'\belse\b', 'ELSE'),
     (r'\bwhile\b', 'WHILE'),
     (r'\bfunction\b', 'FUNCTION'),
     (r'\breturn\b', 'RETURN'),
+    # Identificadores (nombres var y fun)
     (r'[a-zA-Z][a-zA-Z0-9]*', 'ID'),
+    # numeros
     (r'\d+\.\d+', 'DECIMAL'),
     (r'\d+', 'ENTERO'),
+    # operadores de comparación
     (r'==', 'IGUAL'),
     (r'!=', 'DIFERENTE'),
     (r'<=', 'MENOR_IGUAL'),
     (r'>=', 'MAYOR_IGUAL'),
     (r'<', 'MENOR'),
     (r'>', 'MAYOR'),
+    # operadores de asignación y aritmeticos
     (r'=', 'ASIGNACION'),
     (r'\+', 'MAS'),
     (r'-', 'MENOS'),
     (r'\*', 'POR'),
     (r'/', 'DIV'),
+    # delimitadores y símbolos
     (r'\(', 'LPAREN'),
     (r'\)', 'RPAREN'),
     (r'\{', 'LLAVE_IZQ'),
     (r'\}', 'LLAVE_DER'),
     (r';', 'PUNTO_COMA'),
     (r',', 'COMA'),
-    (r'\s+', None),  # Ignorar espacios
-    (r'\n+', None) # ignorar saltos de linea
+    # espacios y saltos de linea
+    (r'\s+', None),
+    (r'\n+', None)
 ]
 
 # Clase para los tokens
@@ -59,6 +66,7 @@ def lexer(code):
     return tokens
 
 # Clase del parser
+# Cada función de la clase parser, es "una regla gramatical"
 class Parser:
     def __init__(self, tokens):
         self.tokens = tokens
@@ -226,8 +234,6 @@ class Parser:
             self.current += 1
         else:
             raise SyntaxError("Número esperado")
-
-from flask import Flask, render_template, request
 
 # Configuración de Flask
 app = Flask(__name__)
