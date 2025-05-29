@@ -30,6 +30,7 @@ patterns = [
     (r';', 'PUNTO_COMA'),
     (r',', 'COMA'),
     (r'\s+', None),  # Ignorar espacios
+    (r'\n+', None) # ignorar saltos de linea
 ]
 
 # Clase para los tokens
@@ -226,26 +227,10 @@ class Parser:
         else:
             raise SyntaxError("Número esperado")
 
+from flask import Flask, render_template, request
+
 # Configuración de Flask
 app = Flask(__name__)
-
-HTML = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Analizador Sintáctico</title>
-</head>
-<body>
-    <h1>Analizador Sintáctico</h1>
-    <form method="post">
-        <textarea name="code" rows="10" cols="50" placeholder="Ingresa tu código aquí..."></textarea><br>
-        <input type="submit" value="Analizar">
-    </form>
-    <h2>Resultado:</h2>
-    <p>{{ result }}</p>
-</body>
-</html>
-"""
 
 @app.route('/', methods=['GET', 'POST'])
 def index():
@@ -262,7 +247,7 @@ def index():
                 result = "Error: Código incompleto o tokens sobrantes."
         except SyntaxError as e:
             result = f"Error sintáctico: {e}"
-    return render_template_string(HTML, result=result)
+    return render_template('index.html', result=result)
 
 if __name__ == '__main__':
     app.run(debug=True)
