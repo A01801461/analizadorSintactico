@@ -1,6 +1,10 @@
 import re
 from flask import Flask, render_template, request
 
+# -----------------------------------------------------------------------------------------------------------------------
+# 1. Definición de patrones léxicos: expresiones para cada tipo de token
+# -----------------------------------------------------------------------------------------------------------------------
+
 # Patrones Lexicos
 patterns = [
     # palabras clave reservadas
@@ -39,12 +43,18 @@ patterns = [
     (r'\s+', None),
     (r'\n+', None)
 ]
-
+# -----------------------------------------------------------------------------------------------------------------------
+# 2. Clase Token: le da un tipo y un valor a cada token
+# -----------------------------------------------------------------------------------------------------------------------
 # Clase para los tokens
 class Token:
     def __init__(self, type, value):
         self.type = type
         self.value = value
+
+# -----------------------------------------------------------------------------------------------------------------------
+# 3. Lexer: Tokeniza el codigo (rompe el string en lista de tokens)
+# -----------------------------------------------------------------------------------------------------------------------
 
 # Función del lexer
 def lexer(code):
@@ -65,7 +75,9 @@ def lexer(code):
             raise SyntaxError(f"Carácter no reconocido en posición {pos}: {code[pos]}")
     return tokens
 
-# Clase del parser
+# -----------------------------------------------------------------------------------------------------------------------
+# 4. Parser: verifica la sintaxis aplicando reglas gramaticales
+# -----------------------------------------------------------------------------------------------------------------------
 # Cada función de la clase parser, es "una regla gramatical"
 class Parser:
     def __init__(self, tokens):
@@ -258,13 +270,13 @@ class Parser:
             raise SyntaxError("Número esperado")
 
 # -----------------------------------------------------------------------------------------------------------------------
-# Configuración de Flask
+# 5. Configuración de Flask
 # -----------------------------------------------------------------------------------------------------------------------
 app = Flask(__name__)
 
 # Función para generar HTML con tokens coloreados
 def highlight_tokens(tokens):
-    # Mapeo de colores para cada tipo de token
+    # Mapeo  para cada tipo de token
     token_colors = {
         'VAR': 'token-var',
         'IF': 'token-if',
