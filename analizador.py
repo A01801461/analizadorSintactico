@@ -257,25 +257,87 @@ class Parser:
         else:
             raise SyntaxError("Número esperado")
 
+# -----------------------------------------------------------------------------------------------------------------------
 # Configuración de Flask
+# -----------------------------------------------------------------------------------------------------------------------
 app = Flask(__name__)
 
+# Función para generar HTML con tokens coloreados
+def highlight_tokens(tokens):
+    # Mapeo de colores para cada tipo de token
+    token_colors = {
+        'VAR': 'token-var',
+        'IF': 'token-if',
+        'ELSE': 'token-else',
+        'WHILE': 'token-while',
+        'FUNCTION': 'token-function',
+        'RETURN': 'token-return',
+        'ID': 'token-id',
+        'DECIMAL': 'token-number',
+        'ENTERO': 'token-number',
+        'IGUAL': 'token-operator',
+        'DIFERENTE': 'token-operator',
+        'MENOR_IGUAL': 'token-operator',
+        'MAYOR_IGUAL': 'token-operator',
+        'MENOR': 'token-operator',
+        'MAYOR': 'token-operator',
+        'ASIGNACION': 'token-assign',
+        'MAS': 'token-operator',
+        'MENOS': 'token-operator',
+        'POR': 'token-operator',
+        'DIV': 'token-operator',
+        'LPAREN': 'token-paren',
+        'RPAREN': 'token-paren',
+        'LLAVE_IZQ': 'token-brace',
+        'LLAVE_DER': 'token-brace',
+        'PUNTO_COMA': 'token-semicolon',
+        'COMA': 'token-comma'
+    }
+    
+    highlighted = []
+    for token in tokens:
+        css_class = token_colors.get(token.type, 'token-default')
+        # Escapar caracteres especiales para HTML
+        value = token.value.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
+        highlighted.append(f'<span class="{css_class}">{value}</span>')
+    
+    return ''.join(highlighted)
+
+# Ruta principal
 @app.route('/', methods=['GET', 'POST'])
 def index():
     result = ""
+    highlighted_code = ""
+    original_code = ""
+    
     if request.method == 'POST':
-        code = request.form['code']
+        original_code = request.form['code']
         try:
-            tokens = lexer(code)
+            # Procesar el código
+            tokens = lexer(original_code)
+            highlighted_code = highlight_tokens(tokens)
+            
+            # Análisis sintáctico
             parser = Parser(tokens)
             parser.S()
+            
+            # Verificar si se procesaron todos los tokens
             if parser.current == len(tokens):
-                result = "El código es sintácticamente correcto."
+                result = "✅ El código es sintácticamente correcto."
             else:
-                result = "Error: Código incompleto o tokens sobrantes."
+                remaining = ' '.join([t.value for t in tokens[parser.current:]])
+                result = f"❌ Error: Código incompleto. Tokens no procesados: {remaining}"
         except SyntaxError as e:
-            result = f"Error sintáctico: {e}"
-    return render_template('index.html', result=result)
+            result = f"❌ Error sintáctico: {e}"
+    else:
+        original_code = ""  # Para GET requests
+    
+    return render_template(
+        'index.html', 
+        result=result,
+        highlighted_code=highlighted_code,
+        original_code=original_code
+    )
 
 if __name__ == '__main__':
     app.run(debug=True)
