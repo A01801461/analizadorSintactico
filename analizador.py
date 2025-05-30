@@ -86,24 +86,29 @@ class Parser:
 
     def C(self):
         if self.current >= len(self.tokens):
-            return  # λ (vacío)
-        if self.tokens[self.current].type == 'VAR':
+            # Si se llama S y no hay mas tokens (parte vacia de S -> C S)
+            return
+
+        token_type = self.tokens[self.current].type
+        if token_type == 'VAR':
             self.D()
-        elif self.tokens[self.current].type == 'ID':
+        elif token_type == 'ID':
             if self.current + 1 < len(self.tokens) and self.tokens[self.current + 1].type == 'ASIGNACION':
                 self.A()
             else:
                 self.L()
-        elif self.tokens[self.current].type == 'IF':
+        elif token_type == 'IF':
             self.I()
-        elif self.tokens[self.current].type == 'WHILE':
+        elif token_type == 'WHILE':
             self.W()
-        elif self.tokens[self.current].type == 'FUNCTION':
+        elif token_type == 'FUNCTION':
             self.F()
-        elif self.tokens[self.current].type == 'RETURN':
+        elif token_type == 'RETURN':
             self.R()
         else:
-            return  # λ (vacío)
+            # Si el token no es ninguno de los admitidos por C
+            error_token_value = self.tokens[self.current].value
+            raise SyntaxError(f"Sentencia o declaración inválida. Se encontró '{error_token_value}' (tipo: {token_type}) en la posición {self.current}.")
 
     def D(self):
         self.match('VAR')
@@ -118,12 +123,16 @@ class Parser:
         self.E()
         self.match('PUNTO_COMA')
 
+    def COND(self):
+        self.E()
+        if self.current < len(self.tokens) and self.tokens[self.current].type in ('MENOR', 'MAYOR', 'IGUAL', 'MENOR_IGUAL', 'MAYOR_IGUAL', 'DIFERENTE'):
+            self.O()
+            self.E()
+
     def I(self):
         self.match('IF')
         self.match('LPAREN')
-        self.E()
-        self.O()
-        self.E()
+        self.COND()
         self.match('RPAREN')
         self.B()
         if self.current < len(self.tokens) and self.tokens[self.current].type == 'ELSE':
@@ -133,9 +142,7 @@ class Parser:
     def W(self):
         self.match('WHILE')
         self.match('LPAREN')
-        self.E()
-        self.O()
-        self.E()
+        self.COND()
         self.match('RPAREN')
         self.B()
 
@@ -152,12 +159,12 @@ class Parser:
             self.P()
         self.match('RPAREN')
         self.B()
-
+    
     def P(self):
-        self.N()
+        self.N()  # Primer parámetro
         while self.current < len(self.tokens) and self.tokens[self.current].type == 'COMA':
             self.match('COMA')
-            self.N()
+            self.N()  # Parámetros adicionales separados por comas
 
     def R(self):
         self.match('RETURN')
@@ -174,21 +181,28 @@ class Parser:
 
     def Z(self):
         while self.current < len(self.tokens) and self.tokens[self.current].type != 'LLAVE_DER':
-            if self.tokens[self.current].type == 'VAR':
+            token_type = self.tokens[self.current].type  # Get current token type
+
+            if token_type == 'VAR':
                 self.D()
-            elif self.tokens[self.current].type == 'ID':
+            elif token_type == 'ID':
                 if self.current + 1 < len(self.tokens) and self.tokens[self.current + 1].type == 'ASIGNACION':
                     self.A()
                 else:
                     self.L()
-            elif self.tokens[self.current].type == 'IF':
+            elif token_type == 'IF':
                 self.I()
-            elif self.tokens[self.current].type == 'WHILE':
+            elif token_type == 'WHILE':
                 self.W()
-            elif self.tokens[self.current].type == 'RETURN':
+            elif token_type == 'FUNCTION':  # <<< Agregue este caso
+                self.F()                    # Ahora Z tambien acepta llamadas a funciones
+            elif token_type == 'RETURN':
                 self.R()
             else:
-                raise SyntaxError("Estatuto esperado en bloque")
+                # Error (el token no es ninguno de los aceptados por Z)
+                error_token_value = self.tokens[self.current].value
+                error_token_type = self.tokens[self.current].type
+                raise SyntaxError(f"Estatuto esperado en bloque, pero se encontró '{error_token_value}' (tipo: {error_token_type}) en la posición {self.current}.")
 
     def N(self):
         if self.current < len(self.tokens) and self.tokens[self.current].type == 'ID':
@@ -217,18 +231,26 @@ class Parser:
     def G(self):
         if self.current < len(self.tokens):
             if self.tokens[self.current].type == 'ID':
-                self.N()
+                self.N()  # Parsea el identificador
+                # Si viene un paréntesis, es una llamada a función
+                if self.current < len(self.tokens) and self.tokens[self.current].type == 'LPAREN':
+                    self.match('LPAREN')
+                    # Si no hay parámetros, se espera solo ')'
+                    if self.current < len(self.tokens) and self.tokens[self.current].type != 'RPAREN':
+                        self.P()  # Parsea la lista de parámetros (N)
+                    self.match('RPAREN')
+                # Si no hay '(', entonces es solo un identificador (N)
             elif self.tokens[self.current].type in ('ENTERO', 'DECIMAL'):
-                self.Y()
+                self.Y()  # Parsea un número
             elif self.tokens[self.current].type == 'LPAREN':
                 self.match('LPAREN')
-                self.E()
+                self.E()  # Parsea una expresión entre paréntesis
                 self.match('RPAREN')
             else:
                 raise SyntaxError("Expresión esperada")
         else:
             raise SyntaxError("Expresión esperada")
-
+    
     def Y(self):
         if self.current < len(self.tokens) and self.tokens[self.current].type in ('ENTERO', 'DECIMAL'):
             self.current += 1
