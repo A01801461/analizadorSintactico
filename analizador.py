@@ -1,65 +1,74 @@
+# -----------------------------------------------------------------------------------------------------------------------
+# Autores:
+#   Isaac Abud León A01801461
+#   Jaretzy Andrea Santiago Barragán A01801092
+# Entrega: Etapa 2, Analizador Sintáctico
+# Descripción: Analizador léxico y sintáctico básico implementado en Python usando expresiones regulares. Este programa
+# utiliza Flask para crear una interfaz web que recibe código fuente, lo tokeniza y verifica su sintaxis.
+# -----------------------------------------------------------------------------------------------------------------------
+
 import re
 from flask import Flask, render_template, request
 
 # -----------------------------------------------------------------------------------------------------------------------
-# 1. Definición de patrones léxicos: expresiones para cada tipo de token
+# 1. Definición de patrones léxicos: expresiones regulares para cada tipo de token.
+# Estos patrones identifican palabras clave, identificadores, operadores, números, y delimitadores.
 # -----------------------------------------------------------------------------------------------------------------------
 
-# Patrones Lexicos
 patterns = [
-    # palabras clave reservadas
+    # Palabras clave reservadas del lenguaje
     (r'\bvar\b', 'VAR'),
     (r'\bif\b', 'IF'),
     (r'\belse\b', 'ELSE'),
     (r'\bwhile\b', 'WHILE'),
     (r'\bfunction\b', 'FUNCTION'),
     (r'\breturn\b', 'RETURN'),
-    # Identificadores (nombres var y fun)
+    # Identificadores: letras seguidas opcionalmente de letras o números
     (r'[a-zA-Z][a-zA-Z0-9]*', 'ID'),
-    # numeros
+    # Números: decimales y enteros
     (r'\d+\.\d+', 'DECIMAL'),
     (r'\d+', 'ENTERO'),
-    # operadores de comparación
+    # Operadores de comparación
     (r'==', 'IGUAL'),
     (r'!=', 'DIFERENTE'),
     (r'<=', 'MENOR_IGUAL'),
     (r'>=', 'MAYOR_IGUAL'),
     (r'<', 'MENOR'),
     (r'>', 'MAYOR'),
-    # operadores de asignación y aritmeticos
+    # Operadores de asignación y aritméticos
     (r'=', 'ASIGNACION'),
     (r'\+', 'MAS'),
     (r'-', 'MENOS'),
     (r'\*', 'POR'),
     (r'/', 'DIV'),
-    # delimitadores y símbolos
+    # Delimitadores y símbolos
     (r'\(', 'LPAREN'),
     (r'\)', 'RPAREN'),
     (r'\{', 'LLAVE_IZQ'),
     (r'\}', 'LLAVE_DER'),
     (r';', 'PUNTO_COMA'),
     (r',', 'COMA'),
-    # espacios y saltos de linea
+    # Espacios y saltos de línea (se ignoran)
     (r'\s+', None),
     (r'\n+', None)
 ]
+
 # -----------------------------------------------------------------------------------------------------------------------
-# 2. Clase Token: le da un tipo y un valor a cada token
+# 2. Clase Token: representa un token con su tipo y valor capturado del código fuente.
 # -----------------------------------------------------------------------------------------------------------------------
-# Clase para los tokens
+
 class Token:
     def __init__(self, type, value):
-        self.type = type
-        self.value = value
+        self.type = type  # Tipo de token (por ejemplo, 'ID', 'VAR', etc.)
+        self.value = value  # Valor original capturado del código
 
 # -----------------------------------------------------------------------------------------------------------------------
-# 3. Lexer: Tokeniza el codigo (rompe el string en lista de tokens)
+# 3. Lexer: función que tokeniza el código fuente. Recorre el texto e identifica tokens válidos según los patrones.
 # -----------------------------------------------------------------------------------------------------------------------
 
-# Función del lexer
 def lexer(code):
-    tokens = []
-    pos = 0
+    tokens = []  # Lista final de tokens
+    pos = 0  # Posición actual en el texto
     while pos < len(code):
         match = None
         for pattern, token_type in patterns:
@@ -76,31 +85,32 @@ def lexer(code):
     return tokens
 
 # -----------------------------------------------------------------------------------------------------------------------
-# 4. Parser: verifica la sintaxis aplicando reglas gramaticales
+# 4. Parser: analizador sintáctico. Verifica la estructura del código usando reglas gramaticales.
+# Cada método representa una producción o regla del lenguaje.
 # -----------------------------------------------------------------------------------------------------------------------
-# Cada función de la clase parser, es "una regla gramatical"
+
 class Parser:
     def __init__(self, tokens):
-        self.tokens = tokens
-        self.current = 0
+        self.tokens = tokens  # Lista de tokens que analizará
+        self.current = 0      # Índice actual en la lista de tokens
 
+    # Verifica si el token actual es del tipo esperado
     def match(self, expected):
         if self.current < len(self.tokens) and self.tokens[self.current].type == expected:
             self.current += 1
         else:
             raise SyntaxError(f"Esperado {expected} en posición {self.current}")
 
+    # Producción inicial S -> C S | ε
     def S(self):
         if self.current < len(self.tokens):
             self.C()
-            self.S()  # Recursión para C S
-        # Si no hay más tokens, se asume que S puede terminar
+            self.S()
 
+    # Producción C: selección de tipos de instrucciones
     def C(self):
         if self.current >= len(self.tokens):
-            # Si se llama S y no hay mas tokens (parte vacia de S -> C S)
             return
-
         token_type = self.tokens[self.current].type
         if token_type == 'VAR':
             self.D()
@@ -118,10 +128,10 @@ class Parser:
         elif token_type == 'RETURN':
             self.R()
         else:
-            # Si el token no es ninguno de los admitidos por C
             error_token_value = self.tokens[self.current].value
             raise SyntaxError(f"Sentencia o declaración inválida. Se encontró '{error_token_value}' (tipo: {token_type}) en la posición {self.current}.")
 
+    # Declaración de variable: var ID = E;
     def D(self):
         self.match('VAR')
         self.N()
@@ -129,18 +139,21 @@ class Parser:
         self.E()
         self.match('PUNTO_COMA')
 
+    # Asignación: ID = E;
     def A(self):
         self.N()
         self.match('ASIGNACION')
         self.E()
         self.match('PUNTO_COMA')
 
+    # Condición: E operador E
     def COND(self):
         self.E()
         if self.current < len(self.tokens) and self.tokens[self.current].type in ('MENOR', 'MAYOR', 'IGUAL', 'MENOR_IGUAL', 'MAYOR_IGUAL', 'DIFERENTE'):
             self.O()
             self.E()
 
+    # Sentencia IF-ELSE
     def I(self):
         self.match('IF')
         self.match('LPAREN')
@@ -151,6 +164,7 @@ class Parser:
             self.match('ELSE')
             self.B()
 
+    # Ciclo WHILE
     def W(self):
         self.match('WHILE')
         self.match('LPAREN')
@@ -158,11 +172,13 @@ class Parser:
         self.match('RPAREN')
         self.B()
 
+    # Bloque de código: { Z }
     def B(self):
         self.match('LLAVE_IZQ')
         self.Z()
         self.match('LLAVE_DER')
 
+    # Declaración de función
     def F(self):
         self.match('FUNCTION')
         self.N()
@@ -171,18 +187,21 @@ class Parser:
             self.P()
         self.match('RPAREN')
         self.B()
-    
+
+    # Lista de parámetros: ID (, ID)*
     def P(self):
-        self.N()  # Primer parámetro
+        self.N()
         while self.current < len(self.tokens) and self.tokens[self.current].type == 'COMA':
             self.match('COMA')
-            self.N()  # Parámetros adicionales separados por comas
+            self.N()
 
+    # Retorno de función
     def R(self):
         self.match('RETURN')
         self.E()
         self.match('PUNTO_COMA')
 
+    # Llamada a función
     def L(self):
         self.N()
         self.match('LPAREN')
@@ -191,10 +210,10 @@ class Parser:
         self.match('RPAREN')
         self.match('PUNTO_COMA')
 
+    # Secuencia de sentencias dentro de un bloque
     def Z(self):
         while self.current < len(self.tokens) and self.tokens[self.current].type != 'LLAVE_DER':
-            token_type = self.tokens[self.current].type  # Get current token type
-
+            token_type = self.tokens[self.current].type
             if token_type == 'VAR':
                 self.D()
             elif token_type == 'ID':
@@ -206,63 +225,65 @@ class Parser:
                 self.I()
             elif token_type == 'WHILE':
                 self.W()
-            elif token_type == 'FUNCTION':  # <<< Agregue este caso
-                self.F()                    # Ahora Z tambien acepta llamadas a funciones
+            elif token_type == 'FUNCTION':
+                self.F()
             elif token_type == 'RETURN':
                 self.R()
             else:
-                # Error (el token no es ninguno de los aceptados por Z)
                 error_token_value = self.tokens[self.current].value
                 error_token_type = self.tokens[self.current].type
                 raise SyntaxError(f"Estatuto esperado en bloque, pero se encontró '{error_token_value}' (tipo: {error_token_type}) en la posición {self.current}.")
 
+    # Identificador (ID)
     def N(self):
         if self.current < len(self.tokens) and self.tokens[self.current].type == 'ID':
             self.match('ID')
         else:
             raise SyntaxError("Identificador esperado")
 
+    # Operadores de comparación
     def O(self):
         if self.current < len(self.tokens) and self.tokens[self.current].type in ('MENOR', 'MAYOR', 'IGUAL', 'MENOR_IGUAL', 'MAYOR_IGUAL', 'DIFERENTE'):
             self.current += 1
         else:
             raise SyntaxError("Operador lógico esperado")
 
+    # Expresiones aritméticas: suma y resta
     def E(self):
         self.T()
         while self.current < len(self.tokens) and self.tokens[self.current].type in ('MAS', 'MENOS'):
             self.current += 1
             self.T()
 
+    # Términos: multiplicación y división
     def T(self):
         self.G()
         while self.current < len(self.tokens) and self.tokens[self.current].type in ('POR', 'DIV'):
             self.current += 1
             self.G()
 
+    # Factores: ID, número, llamada a función, o expresión entre paréntesis
     def G(self):
         if self.current < len(self.tokens):
             if self.tokens[self.current].type == 'ID':
-                self.N()  # Parsea el identificador
-                # Si viene un paréntesis, es una llamada a función
+                self.N()
                 if self.current < len(self.tokens) and self.tokens[self.current].type == 'LPAREN':
                     self.match('LPAREN')
-                    # Si no hay parámetros, se espera solo ')'
                     if self.current < len(self.tokens) and self.tokens[self.current].type != 'RPAREN':
-                        self.P()  # Parsea la lista de parámetros (N)
+                        self.P()
                     self.match('RPAREN')
-                # Si no hay '(', entonces es solo un identificador (N)
             elif self.tokens[self.current].type in ('ENTERO', 'DECIMAL'):
-                self.Y()  # Parsea un número
+                self.Y()
             elif self.tokens[self.current].type == 'LPAREN':
                 self.match('LPAREN')
-                self.E()  # Parsea una expresión entre paréntesis
+                self.E()
                 self.match('RPAREN')
             else:
                 raise SyntaxError("Expresión esperada")
         else:
             raise SyntaxError("Expresión esperada")
-    
+
+    # Constantes numéricas
     def Y(self):
         if self.current < len(self.tokens) and self.tokens[self.current].type in ('ENTERO', 'DECIMAL'):
             self.current += 1
@@ -272,11 +293,11 @@ class Parser:
 # -----------------------------------------------------------------------------------------------------------------------
 # 5. Configuración de Flask
 # -----------------------------------------------------------------------------------------------------------------------
+
 app = Flask(__name__)
 
 # Función para generar HTML con tokens coloreados
-def highlight_tokens(tokens):
-    # Mapeo  para cada tipo de token
+def highlight_tokens(code, tokens):
     token_colors = {
         'VAR': 'token-var',
         'IF': 'token-if',
@@ -305,15 +326,31 @@ def highlight_tokens(tokens):
         'PUNTO_COMA': 'token-semicolon',
         'COMA': 'token-comma'
     }
-    
-    highlighted = []
+
+    # Para evitar reemplazar múltiples veces, se recorre el texto una vez
+    result = ""
+    index = 0
     for token in tokens:
+        # Encuentra el token en el texto a partir de la posición actual
+        start = code.find(token.value, index)
+        if start == -1:
+            continue  # No encontrado, lo ignora
+        end = start + len(token.value)
+
+        # Agrega el texto sin resaltar hasta el inicio del token
+        result += code[index:start]
+
+        # Resalta el token
         css_class = token_colors.get(token.type, 'token-default')
-        # Escapar caracteres especiales para HTML
-        value = token.value.replace('&', '&amp;').replace('<', '&lt;').replace('>', '&gt;')
-        highlighted.append(f'<span class="{css_class}">{value}</span>')
-    
-    return ''.join(highlighted)
+        result += f'<span class="{css_class}">{token.value}</span>'
+
+        # Actualiza el índice para continuar
+        index = end
+
+    # Agrega lo que queda del texto sin resaltar
+    result += code[index:]
+
+    return result
 
 # Ruta principal
 @app.route('/', methods=['GET', 'POST'])
@@ -327,7 +364,7 @@ def index():
         try:
             # Procesar el código
             tokens = lexer(original_code)
-            highlighted_code = highlight_tokens(tokens)
+            highlighted_code = highlight_tokens(original_code, tokens)
             
             # Análisis sintáctico
             parser = Parser(tokens)
