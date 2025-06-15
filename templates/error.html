@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Error - Analizador Sintáctico</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            color: #333;
+        }
+        
+        h1 {
+            color: #e74c3c;
+            text-align: center;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 10px;
+        }
+        
+        .error-container {
+            background: #f8d7da;
+            color: #721c24;
+            padding: 20px;
+            border-radius: 8px;
+            border-left: 4px solid #e74c3c;
+            margin: 20px 0;
+        }
+        
+        .error-icon {
+            font-size: 3em;
+            text-align: center;
+            margin-bottom: 15px;
+        }
+        
+        .back-button {
+            background: #3498db;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin-top: 20px;
+        }
+        
+        .back-button:hover {
+            background: #2980b9;
+        }
+        
+        .suggestions {
+            background: #d1ecf1;
+            color: #0c5460;
+            padding: 15px;
+            border-radius: 4px;
+            border-left: 3px solid #17a2b8;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <h1>❌ Error en el Procesamiento</h1>
+    
+    <div class="error-container">
+        <div class="error-icon">⚠️</div>
+        <h3>Se ha producido un error:</h3>
+        <p><strong>{{ error_message }}</strong></p>
+    </div>
+    
+    <div class="suggestions">
+        <h4>💡 Posibles soluciones:</h4>
+        <ul>
+            <li>Verifica que la carpeta <code>tests/</code> exista en el directorio raíz del proyecto</li>
+            <li>Asegúrate de que los archivos .txt en la carpeta tengan contenido válido</li>
+            <li>Verifica los permisos de lectura de los archivos</li>
+            <li>Revisa que no haya caracteres especiales que causen problemas de codificación</li>
+        </ul>
+    </div>
+    
+    <a href="/" class="back-button">← Volver al Analizador</a>
+</body>
+</html>

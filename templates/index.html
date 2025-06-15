@@ -31,17 +31,41 @@
             margin-bottom: 10px;
         }
         
-        input[type="submit"] {
+        input[type="submit"], .btn {
             background: #3498db;
             color: white;
             border: none;
             padding: 8px 16px;
             border-radius: 4px;
             cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+            margin: 5px;
         }
         
-        input[type="submit"]:hover {
+        input[type="submit"]:hover, .btn:hover {
             background: #2980b9;
+        }
+        
+        .btn:disabled {
+            background: #bdc3c7;
+            cursor: not-allowed;
+        }
+        
+        .btn.sequential {
+            background: #27ae60;
+        }
+        
+        .btn.sequential:hover {
+            background: #229954;
+        }
+        
+        .btn.parallel {
+            background: #e74c3c;
+        }
+        
+        .btn.parallel:hover {
+            background: #c0392b;
         }
         
         .result {
@@ -79,6 +103,48 @@
         .code-output span {
             display: inline-block;
         }
+        
+        /* Estilos para la sección de archivos */
+        .section {
+            margin-top: 40px;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            background: #f8f9fa;
+        }
+        
+        .section h2 {
+            color: #2c3e50;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 10px;
+            margin-bottom: 20px;
+        }
+        
+        .file-info {
+            background: #ecf0f1;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border-left: 4px solid #3498db;
+        }
+        
+        .file-info.no-files {
+            border-left-color: #e74c3c;
+            background: #f8d7da;
+            color: #721c24;
+        }
+        
+        .file-info.has-files {
+            border-left-color: #27ae60;
+            background: #d4edda;
+            color: #155724;
+        }
+        
+        .process-buttons {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
     </style>
 </head>
 <body>
@@ -89,7 +155,7 @@
         <input type="submit" value="Analizar">
     </form>
 
-    <!-- Nuevo contenedor para código coloreado -->
+    <!-- Código coloreado -->
     {% if highlighted_code %}
     <div class="highlighted">
         <h3>Código Coloreado:</h3>
@@ -100,6 +166,36 @@
     <div class="result">
         <h3>Resultado:</h3>
         <pre>{{ result }}</pre>
+    </div>
+
+    <!-- Sección de Procesamiento de Archivos -->
+    <div class="section">
+        <h2>📁 Multiples Archivos</h2>
+        <p>Analiza grandes cantidades de archivos de manera secuencial o paralela.</p>
+        
+        {% if file_info.count == 0 %}
+        <div class="file-info no-files">
+            <p>⚠️ <strong>No se encontraron archivos .txt en la carpeta 'tests/'.</strong></p>
+            <p>Crea la carpeta 'tests' en el directorio raíz y agrega archivos .txt para probar esta funcionalidad.</p>
+        </div>
+        {% else %}
+        <div class="file-info has-files">
+            <p>✅ <strong>Se encontraron {{ file_info.count }} archivos.</strong></p>
+        </div>
+        
+        <div class="process-buttons">
+            <form method="post" action="/process_sequential" style="display: inline;">
+                <button type="submit" class="btn sequential">
+                    🔄 Procesamiento Secuencial
+                </button>
+            </form>
+            <form method="post" action="/process_parallel" style="display: inline;">
+                <button type="submit" class="btn parallel">
+                    ⚡ Procesamiento Paralelo
+                </button>
+            </form>
+        </div>
+        {% endif %}
     </div>
 </body>
 </html>

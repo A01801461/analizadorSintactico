@@ -7,8 +7,11 @@
 # utiliza Flask para crear una interfaz web que recibe código fuente, lo tokeniza y verifica su sintaxis.
 # -----------------------------------------------------------------------------------------------------------------------
 
+import os
 import re
+import time
 from flask import Flask, render_template, request
+from concurrent.futures import ThreadPoolExecutor
 
 # -----------------------------------------------------------------------------------------------------------------------
 # 1. Definición de patrones léxicos: expresiones regulares para cada tipo de token.
@@ -291,7 +294,7 @@ class Parser:
             raise SyntaxError("Número esperado")
 
 # -----------------------------------------------------------------------------------------------------------------------
-# 5. Configuración de Flask
+# 5. Procesamiento y hghliht de strings y archivos
 # -----------------------------------------------------------------------------------------------------------------------
 
 app = Flask(__name__)
@@ -326,7 +329,6 @@ def highlight_tokens(code, tokens):
         'PUNTO_COMA': 'token-semicolon',
         'COMA': 'token-comma'
     }
-
     # Para evitar reemplazar múltiples veces, se recorre el texto una vez
     result = ""
     index = 0
@@ -352,12 +354,94 @@ def highlight_tokens(code, tokens):
 
     return result
 
+def process_single_file(filepath):
+    try:
+        with open(filepath, 'r', encoding='utf-8') as file:
+            content = file.read()
+        
+        # Análisis léxico
+        tokens = lexer(content)
+        highlighted_code = highlight_tokens(content, tokens)
+        
+        return {
+            'filename': os.path.basename(filepath),
+            'status': 'success',
+            'highlighted_code': highlighted_code,
+            'token_count': len(tokens),
+            'original_code': content,
+            'error': None
+        }
+    except Exception as e:
+        return {
+            'filename': os.path.basename(filepath),
+            'status': 'error',
+            'highlighted_code': '',
+            'token_count': 0,
+            'original_code': '',
+            'error': str(e)
+        }
+
+def get_test_files():
+    """Obtiene la lista de archivos .txt en la carpeta tests"""
+    tests_dir = os.path.join(os.getcwd(), 'tests')
+    if not os.path.exists(tests_dir):
+        return []
+    
+    files = []
+    for filename in os.listdir(tests_dir):
+        if filename.endswith('.txt'):
+            files.append(os.path.join(tests_dir, filename))
+    return files
+
+def process_files_sequential():
+    """Procesa archivos de manera secuencial"""
+    files = get_test_files()
+    if not files:
+        return [], 0
+    
+    start_time = time.time()
+    results = []
+    
+    for filepath in files:
+        result = process_single_file(filepath)
+        results.append(result)
+    
+    execution_time = time.time() - start_time
+    return results, execution_time
+
+def process_files_parallel():
+    """Procesa archivos de manera paralela usando ThreadPoolExecutor"""
+    files = get_test_files()
+    if not files:
+        return [], 0
+    
+    start_time = time.time()
+    
+    # Usar ThreadPoolExecutor para procesamiento paralelo
+    with ThreadPoolExecutor(max_workers=os.cpu_count()) as executor:
+        results = list(executor.map(process_single_file, files))
+    
+    execution_time = time.time() - start_time
+    return results, execution_time
+
+
+# -----------------------------------------------------------------------------------------------------------------------
+# 6. Configuración de Flask
+# -----------------------------------------------------------------------------------------------------------------------
+
 # Ruta principal
 @app.route('/', methods=['GET', 'POST'])
 def index():
     result = ""
     highlighted_code = ""
     original_code = ""
+    
+    # Información sobre archivos de prueba
+    test_files = get_test_files()
+    file_info = {
+        'count': len(test_files),
+        'files': [os.path.basename(f) for f in test_files]
+    }
     
     if request.method == 'POST':
         original_code = request.form['code']
@@ -379,14 +463,79 @@ def index():
         except SyntaxError as e:
             result = f"❌ Error sintáctico: {e}"
     else:
-        original_code = ""  # Para GET requests
+        original_code = ""
     
     return render_template(
         'index.html', 
         result=result,
         highlighted_code=highlighted_code,
-        original_code=original_code
+        original_code=original_code,
+        file_info=file_info
     )
 
+@app.route('/process_sequential', methods=['POST'])
+def process_sequential():
+    """Ruta para procesamiento secuencial"""
+    try:
+        results, execution_time = process_files_sequential()
+        
+        # Calcular estadísticas
+        successful_files = [r for r in results if r['status'] == 'success']
+        failed_files = [r for r in results if r['status'] == 'error']
+        
+        stats = {
+            'total_files': len(results),
+            'successful': len(successful_files),
+            'failed': len(failed_files),
+            'execution_time': round(execution_time, 4),
+            'avg_time_per_file': round(execution_time / len(results), 4) if results else 0,
+            'processing_type': 'Secuencial'
+        }
+        
+        return render_template(
+            'results.html',
+            results=results,
+            stats=stats,
+            processing_type='sequential'
+        )
+    except Exception as e:
+        return render_template(
+            'error.html',
+            error_message=f"Error en procesamiento secuencial: {str(e)}"
+        )
+
+@app.route('/process_parallel', methods=['POST'])
+
+def process_parallel():
+    """Ruta para procesamiento paralelo"""
+    try:
+        results, execution_time = process_files_parallel()
+        
+        # Calcular estadísticas
+        successful_files = [r for r in results if r['status'] == 'success']
+        failed_files = [r for r in results if r['status'] == 'error']
+        
+        stats = {
+            'total_files': len(results),
+            'successful': len(successful_files),
+            'failed': len(failed_files),
+            'execution_time': round(execution_time, 4),
+            'avg_time_per_file': round(execution_time / len(results), 4) if results else 0,
+            'processing_type': 'Paralelo',
+            'cpu_cores': os.cpu_count()
+        }
+        
+        return render_template(
+            'results.html',
+            results=results,
+            stats=stats,
+            processing_type='parallel'
+        )
+    except Exception as e:
+        return render_template(
+            'error.html',
+            error_message=f"Error en procesamiento paralelo: {str(e)}"
+        )
+    
 if __name__ == '__main__':
     app.run(debug=True)
