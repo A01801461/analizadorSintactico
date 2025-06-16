@@ -474,9 +474,10 @@ def index():
         file_info=file_info
     )
 
+# Ruta para procesamiento secuencial
 @app.route('/process_sequential', methods=['POST'])
 def process_sequential():
-    """Ruta para procesamiento secuencial"""
+
     try:
         results, execution_time = process_files_sequential()
         
@@ -505,10 +506,12 @@ def process_sequential():
             error_message=f"Error en procesamiento secuencial: {str(e)}"
         )
 
+
+# Ruta para procesamiento paralelo
 @app.route('/process_parallel', methods=['POST'])
 
 def process_parallel():
-    """Ruta para procesamiento paralelo"""
+
     try:
         results, execution_time = process_files_parallel()
         
