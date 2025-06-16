@@ -2,7 +2,7 @@
 # Autores:
 #   Isaac Abud León A01801461
 #   Jaretzy Andrea Santiago Barragán A01801092
-# Entrega: Etapa 2, Analizador Sintáctico
+# Entrega: Etapa 3, Analizador Sintáctico
 # Descripción: Analizador léxico y sintáctico básico implementado en Python usando expresiones regulares. Este programa
 # utiliza Flask para crear una interfaz web que recibe código fuente, lo tokeniza y verifica su sintaxis.
 # -----------------------------------------------------------------------------------------------------------------------
@@ -381,8 +381,8 @@ def process_single_file(filepath):
             'error': str(e)
         }
 
+# obtiene los .txt de la carpeta tests
 def get_test_files():
-    """Obtiene la lista de archivos .txt en la carpeta tests"""
     tests_dir = os.path.join(os.getcwd(), 'tests')
     if not os.path.exists(tests_dir):
         return []
@@ -393,8 +393,9 @@ def get_test_files():
             files.append(os.path.join(tests_dir, filename))
     return files
 
+
+# Funcion para procesamiento secuencial
 def process_files_sequential():
-    """Procesa archivos de manera secuencial"""
     files = get_test_files()
     if not files:
         return [], 0
@@ -409,8 +410,8 @@ def process_files_sequential():
     execution_time = time.time() - start_time
     return results, execution_time
 
+# Funcion para procesamiento paralelo usando ThreadPoolExecutor
 def process_files_parallel():
-    """Procesa archivos de manera paralela usando ThreadPoolExecutor"""
     files = get_test_files()
     if not files:
         return [], 0
