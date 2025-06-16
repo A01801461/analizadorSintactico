@@ -5,6 +5,7 @@
 # Entrega: Etapa 3, Analizador Sintáctico
 # Descripción: Analizador léxico y sintáctico básico implementado en Python usando expresiones regulares. Este programa
 # utiliza Flask para crear una interfaz web que recibe código fuente, lo tokeniza y verifica su sintaxis.
+# Tambien procesa multiples archivos de manera secuencial o paralela, ofreciendo insight en el tiempo y resultado del analisis.
 # -----------------------------------------------------------------------------------------------------------------------
 
 import os
